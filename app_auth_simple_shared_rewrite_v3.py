@@ -357,8 +357,7 @@ def render_search(agg_path: str, raw_path: str):
         )
         view["rank"] = view.groupby("product_id").cumcount() + 1
         return view
-
-   results = filter_results(agg, q_product, q_vendor, q_keywords)
+        results = filter_results(agg, q_product, q_vendor, q_keywords)
 
 if results.empty and (q_product or q_vendor or q_keywords):
     st.info("No matches found. Try broadening your search or removing a filter.")
