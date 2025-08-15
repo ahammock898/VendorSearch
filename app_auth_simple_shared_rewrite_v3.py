@@ -76,7 +76,6 @@ import os
 from datetime import datetime
 import numpy as np
 import pandas as pd
-import streamlit as st
 
 # --------------------------- App config ---------------------------
 st.set_page_config(page_title="Vendor Finder — Shared Dataset (FRP)", layout="wide")
