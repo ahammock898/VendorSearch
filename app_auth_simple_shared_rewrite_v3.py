@@ -14,6 +14,10 @@ if not st.session_state.get("_page_configured", False):
     )
     st.session_state["_page_configured"] = True
 
+# Place this right after st.set_page_config() and before the login logic
+logo_path = "C:\Users\ahammock\Documents\Vendor Product Lists\Images\Untitled design.png"  # Replace with the path to your logo file
+st.sidebar.image(logo_path, use_column_width=True)
+
 
 # --- USERS (top of file) ---
 USERS = {
@@ -359,21 +363,77 @@ def render_search(agg_path: str, raw_path: str):
         view["rank"] = view.groupby("product_id").cumcount() + 1
         return view
 
-    results = filter_results(agg, q_product, q_vendor, q_keywords)
+   results = filter_results(agg, q_product, q_vendor, q_keywords)
 
-    if results.empty and (q_product or q_vendor or q_keywords):
-        st.info("No matches found. Try broadening your search or removing a filter.")
-    elif results.empty:
-        st.caption("Enter a Product ID, Vendor name, and/or Keywords to get ranked vendors.")
-    else:
-        st.subheader("Ranked Vendors (Freq → Recent → Cheapest)")
-        show_cols = [
-            "product_id","vendor_name","rank","orders","last_order_date",
-            "avg_price","min_price","vendor_id","sample_description","keywords",
-            "freq_score","recency_score","price_score","combined_score"
-        ]
-        present = [c for c in show_cols if c in results.columns]
-        st.dataframe(results[present], use_container_width=True)
+if results.empty and (q_product or q_vendor or q_keywords):
+    st.info("No matches found. Try broadening your search or removing a filter.")
+elif results.empty:
+    st.caption("Enter a Product ID, Vendor name, and/or Keywords to get ranked vendors.")
+else:
+    st.subheader("Ranked Vendors (Freq → Recent → Cheapest)")
+
+    # 1) Columns to SHOW (orders & avg_price are intentionally omitted from display)
+    display_cols = [
+        "product_id",        # Product ID
+        "vendor_name",       # Vendor
+        "rank",              # Rank
+        "last_order_date",   # Last Order Date
+        "min_price",         # Min Price
+        "vendor_id",         # Vendor ID
+        "sample_description",# Description
+        "keywords",          # Keywords
+    ]
+    present = [c for c in display_cols if c in results.columns]
+    results_display = results[present].copy()
+
+    # 2) Friendly header names
+    pretty_names = {
+        "product_id": "Product ID",
+        "vendor_name": "Vendor",
+        "rank": "Rank",
+        "last_order_date": "Last Order Date",
+        "min_price": "Min Price",
+        "vendor_id": "Vendor ID",
+        "sample_description": "Description",
+        "keywords": "Keywords",
+    }
+
+    # 3) Light formatting (only affects display)
+    #    - Last Order Date as YYYY-MM-DD
+    if "last_order_date" in results_display.columns:
+        results_display["last_order_date"] = pd.to_datetime(
+            results_display["last_order_date"], errors="coerce"
+        ).dt.strftime("%Y-%m-%d")
+
+    #    - Min Price as currency
+    if "min_price" in results_display.columns:
+        results_display["min_price"] = results_display["min_price"].map(
+            lambda v: "" if pd.isna(v) else f"${v:,.2f}"
+        )
+
+    #    - Vendor ID with NO commas
+    if "vendor_id" in results_display.columns:
+        results_display["vendor_id"] = results_display["vendor_id"].map(
+            lambda v: "" if pd.isna(v) else str(v).replace(",", "")
+        )
+
+    # 4) Highlight top-ranked rows (rank == 1)
+    def _highlight_top_rows(row):
+        col = "rank" if "rank" in row.index else "Rank"
+        try:
+            return ["background-color: #e6ffe6"] * len(row) if row[col] == 1 else ["" ] * len(row)
+        except Exception:
+            return ["" ] * len(row)
+
+    # Apply pretty headers then style
+    styled = (
+        results_display
+        .rename(columns=pretty_names)
+        .style.apply(_highlight_top_rows, axis=1)
+    )
+
+    st.dataframe(styled, use_container_width=True)
+
 
 # --------------------------- Admin Views ---------------------------
 if role == "admin":
