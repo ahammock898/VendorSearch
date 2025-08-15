@@ -4,47 +4,40 @@
 # Admin can Search/Publish/Audit. Duplicate-header-safe normalization, FRP ranking.
 
 import streamlit as st
+from pathlib import Path
+from PIL import Image
 
-# Call page_config once per session, before any other st.* call.
+# --- Page config (runs once per session) ---
 if not st.session_state.get("_page_configured", False):
     st.set_page_config(
         page_title="Vendor Finder — Shared Dataset (FRP)",
         layout="wide",
         initial_sidebar_state="expanded",
     )
-
-    # --- Sidebar logo ---
-    try:
-        from pathlib import Path
-        from PIL import Image
-
-        LOGO = Path(__file__).with_name("Logo.png")
-        if LOGO.exists():
-            st.sidebar.markdown(
-                """
-                <style>
-                [data-testid="stSidebar"] img { display:block; margin: 0 auto; }
-                </style>
-                """,
-                unsafe_allow_html=True,
-            )
-            img = Image.open(LOGO)
-            st.sidebar.image(img, use_container_width=True)
-            st.sidebar.markdown("---")
-    except Exception:
-        pass
-
     st.session_state["_page_configured"] = True
 
-# --- USERS (top of file) ---
+# --- Sidebar logo (runs every render) ---
+LOGO = Path(__file__).with_name("Logo.png")
+if LOGO.exists():
+    st.sidebar.markdown(
+        """
+        <style>
+        [data-testid="stSidebar"] img { display:block; margin: 0 auto; }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+    img = Image.open(LOGO)
+    st.sidebar.image(img, use_container_width=True)
+    st.sidebar.markdown("---")
+
+# --- USERS ---
 USERS = {
     "Admin": {"password": "Admin123!", "role": "admin"},
     "User1": {"password": "User123!", "role": "user"},
 }
 
-# ------------ AUTH: inline login panel + safe logout gate ------------
-
-# Ensure session auth container exists
+# --- Auth state bootstrap ---
 auth = st.session_state.get("auth")
 if not isinstance(auth, dict):
     auth = {"status": None, "user": None}
@@ -52,42 +45,33 @@ if not isinstance(auth, dict):
 
 username = auth.get("user")
 
-
-def _find_user(u: str):
-    """Return user record by exact key, then case-insensitive fallback."""
-    if u in USERS:  # exact match first
-        return u, USERS[u]
-    # case-insensitive fallback
-    lower_map = {k.lower(): k for k in USERS.keys()}
-    k = lower_map.get(u.lower())
-    return (k, USERS[k]) if k else (None, None)
-
-# If NOT logged in: render login panel and stop
+# --- Login panel lives in the sidebar, right under the logo ---
 if not username:
     with st.sidebar.form("login_form", clear_on_submit=False):
-        st.subheader("Log in")
-        u_raw = st.text_input("Username")
-        p = st.text_input("Password", type="password")
+        st.subheader("Sign in")
+        u_raw = st.text_input("Username", key="login_user")
+        p_raw = st.text_input("Password", type="password", key="login_pass")
         submitted = st.form_submit_button("Log in")
 
     if submitted:
         u = (u_raw or "").strip()
-        p = (p or "").strip()
-        key, user_rec = _find_user(u)
+        p = (p_raw or "").strip()
+        user_rec = USERS.get(u) or USERS.get(u.title()) or USERS.get(u.capitalize())
         if user_rec and p == str(user_rec.get("password", "")):
-            st.session_state.auth = {"status": True, "user": key}
-            st.rerun()  # IMPORTANT: use st.rerun(), not experimental
+            st.session_state.auth = {"status": True, "user": u if u in USERS else [k for k in USERS if k.lower()==u.lower()][0]}
+            st.rerun()
         else:
             st.sidebar.error("Invalid username or password")
-    st.stop()
+    st.stop()  # stop before rendering the rest of the app
 
-# If we get here, we are logged in
+# --- If logged in, show Logout in the sidebar (still under the logo) ---
 role = USERS.get(username, {}).get("role")
 
-# ---- Logout (inline — not a callback) ----
 if st.sidebar.button("Logout", key="logout_btn"):
-    st.session_state.clear()  # wipe everything, including _page_configured
-    st.rerun()                # immediately re-render; login panel shows
+    for k in ("auth", "authentication_status", "name", "username", "role", "login_user", "login_pass"):
+        st.session_state.pop(k, None)
+    st.session_state.auth = {"status": None, "user": None}
+    st.rerun()
 
 # ------------ END AUTH GATE ------------
 import io
