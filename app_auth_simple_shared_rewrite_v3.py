@@ -12,14 +12,8 @@ if not st.session_state.get("_page_configured", False):
         layout="wide",
         initial_sidebar_state="expanded",
     )
-    if not st.session_state.get("_page_configured", False):
-    st.set_page_config(
-        page_title="Vendor Finder — Shared Dataset (FRP)",
-        layout="wide",
-        initial_sidebar_state="expanded",
-    )
 
-    # --- Sidebar logo (safe load) ---
+    # --- Sidebar logo ---
     try:
         from pathlib import Path
         from PIL import Image
@@ -38,9 +32,7 @@ if not st.session_state.get("_page_configured", False):
             st.sidebar.image(img, use_container_width=True)
             st.sidebar.markdown("---")
     except Exception:
-    pass
-
-    st.session_state["_page_configured"] = True
+        pass
 
     st.session_state["_page_configured"] = True
 
