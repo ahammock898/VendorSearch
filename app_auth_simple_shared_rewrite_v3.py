@@ -38,7 +38,7 @@ if not st.session_state.get("_page_configured", False):
             st.sidebar.image(img, use_container_width=True)
             st.sidebar.markdown("---")
     except Exception:
-        pass
+    pass
 
     st.session_state["_page_configured"] = True
 
