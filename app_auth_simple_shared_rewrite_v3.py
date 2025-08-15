@@ -3,31 +3,40 @@
 # Change: make vendor_id optional (no failures if missing). Dynamic aggregation keys.
 # Admin can Search/Publish/Audit. Duplicate-header-safe normalization, FRP ranking.
 
-# ---- AUTH GATE & LOGOUT (put this close to the top) ----
+# ------------ AUTH: username/role + safe logout + hard gate ------------
 import streamlit as st
 
-USERS = USERS  # keep your existing USERS dict
+# Ensure an auth dict exists in session_state
+auth = st.session_state.get("auth")
+if not isinstance(auth, dict):
+    auth = {"status": None, "user": None}
+    st.session_state.auth = auth
+
+username = auth.get("user")
+
+# Resolve role *safely* without assuming USERS already exists
+role = None
+_users = globals().get("USERS", {})  # if USERS isn't defined yet, use {}
+if username:
+    user_info = _users.get(username, {})
+    role = user_info.get("role")
 
 def _logout():
-    # remove only auth-related keys, leave other widgets intact
+    # clear only auth-related keys
     for k in ("auth", "authentication_status", "name", "username", "role"):
         st.session_state.pop(k, None)
-    st.rerun()  # clean rerun; avoids transient stack traces
+    st.rerun()  # clean rerun to refresh back to login
 
-auth = st.session_state.get("auth", {"status": None, "user": None})
-username = auth.get("user")
-role = USERS.get(username, {}).get("role") if username else None
-
-# show Logout only when logged in
+# Show Logout only when logged in
 if username:
     st.sidebar.button("Logout", on_click=_logout)
 
-# HARD GATE: stop immediately if not logged in
+# HARD GATE: stop running the rest of the app if not logged in
 if not username:
-    # (Optional) minimal placeholder so page isn't totally blank
     st.sidebar.info("Please log in to continue.")
     st.stop()
-# ---- END AUTH GATE ----
+# ------------ END AUTH GATE ------------
+
 
 import io
 import os
