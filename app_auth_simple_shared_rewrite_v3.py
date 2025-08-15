@@ -14,11 +14,6 @@ if not st.session_state.get("_page_configured", False):
     )
     st.session_state["_page_configured"] = True
 
-# Place this right after st.set_page_config() and before the login logic
-logo_path = "C:\Users\ahammock\Documents\Vendor Product Lists\Images\Untitled design.png"  # Replace with the path to your logo file
-st.sidebar.image(logo_path, use_column_width=True)
-
-
 # --- USERS (top of file) ---
 USERS = {
     "Admin": {"password": "Admin123!", "role": "admin"},
