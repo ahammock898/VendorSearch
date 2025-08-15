@@ -5,7 +5,6 @@
 
 import streamlit as st
 from pathlib import Path
-from PIL import Image
 
 # --- Page config (runs once per session) ---
 if not st.session_state.get("_page_configured", False):
@@ -15,19 +14,17 @@ if not st.session_state.get("_page_configured", False):
         initial_sidebar_state="expanded",
     )
 
-from pathlib import Path
+    # --- Sidebar logo (simple & robust) ---
+    LOGO = Path(__file__).with_name("Logo.png")  # exact case matters
+    if LOGO.exists():
+        st.sidebar.image(str(LOGO), use_container_width=True)
+        st.sidebar.markdown("---")
+    else:
+        # Optional: one-line debug you can remove later
+        st.sidebar.caption(f"Logo not found at {LOGO}")
 
-# --- Sidebar logo (simple & robust) ---
-LOGO = Path(__file__).with_name("Logo.png")  # exact case matters
-if LOGO.exists():
-    st.sidebar.image(str(LOGO), use_container_width=True)
-    st.sidebar.markdown("---")
-else:
-    # Optional: one-line debug you can remove later
-    st.sidebar.caption(f"Logo not found at {LOGO}")
-
+    # ✅ Make sure this is always set inside the `if not _page_configured` block
     st.session_state["_page_configured"] = True
-
 
 
 # --- USERS ---
@@ -35,6 +32,7 @@ USERS = {
     "Admin": {"password": "Admin123!", "role": "admin"},
     "User1": {"password": "User123!", "role": "user"},
 }
+
 
 # --- Auth state bootstrap ---
 auth = st.session_state.get("auth")
