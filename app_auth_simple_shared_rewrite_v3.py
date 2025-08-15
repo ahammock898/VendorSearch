@@ -12,24 +12,37 @@ if not st.session_state.get("_page_configured", False):
         layout="wide",
         initial_sidebar_state="expanded",
     )
+    if not st.session_state.get("_page_configured", False):
+    st.set_page_config(
+        page_title="Vendor Finder — Shared Dataset (FRP)",
+        layout="wide",
+        initial_sidebar_state="expanded",
+    )
+
+    # --- Sidebar logo (safe load) ---
+    try:
+        from pathlib import Path
+        from PIL import Image
+
+        LOGO = Path(__file__).with_name("Logo.png")
+        if LOGO.exists():
+            st.sidebar.markdown(
+                """
+                <style>
+                [data-testid="stSidebar"] img { display:block; margin: 0 auto; }
+                </style>
+                """,
+                unsafe_allow_html=True,
+            )
+            img = Image.open(LOGO)
+            st.sidebar.image(img, use_container_width=True)
+            st.sidebar.markdown("---")
+    except Exception:
+        pass
+
     st.session_state["_page_configured"] = True
 
-from pathlib import Path
-
-# --- Sidebar logo (must be before the login form) ---
-LOGO = Path(__file__).with_name("Logo.png")
-if LOGO.exists():
-    # Optional: center the image in the sidebar
-    st.sidebar.markdown(
-        """
-        <style>
-        [data-testid="stSidebar"] img { display:block; margin: 0 auto; }
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
-    st.sidebar.image(str(LOGO), use_container_width=True)
-    st.sidebar.markdown("---")  # a divider under the logo
+    st.session_state["_page_configured"] = True
 
 # --- USERS (top of file) ---
 USERS = {
