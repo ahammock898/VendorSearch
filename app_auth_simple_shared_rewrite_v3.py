@@ -50,12 +50,12 @@ if not username:
         submitted = st.form_submit_button("Log in")
 
     if submitted:
-        u = (u_raw or "").strip()      # trim spaces
-        p = (p or "").strip()          # trim spaces
+        u = (u_raw or "").strip()
+        p = (p or "").strip()
         key, user_rec = _find_user(u)
         if user_rec and p == str(user_rec.get("password", "")):
             st.session_state.auth = {"status": True, "user": key}
-            st.rerun()
+            st.rerun()  # IMPORTANT: use st.rerun(), not experimental
         else:
             st.sidebar.error("Invalid username or password")
     st.stop()
@@ -65,10 +65,8 @@ role = USERS.get(username, {}).get("role")
 
 # ---- Logout (inline — not a callback) ----
 if st.sidebar.button("Logout", key="logout_btn"):
-    for k in ("auth", "authentication_status", "name", "username", "role", "login_user", "login_pass"):
-        st.session_state.pop(k, None)
-    st.session_state.auth = {"status": None, "user": None}
-    st.experimental_rerun()  # Force immediate rerender with login panel
+    st.session_state.clear()  # wipe everything, including _page_configured
+    st.rerun()                # immediately re-render; login panel shows
 
 # ------------ END AUTH GATE ------------
 import io
