@@ -13,19 +13,20 @@ if not st.session_state.get("_page_configured", False):
         layout="wide",
         initial_sidebar_state="expanded",
     )
+    st.session_state["_page_configured"] = True
 
-    # --- Sidebar logo (simple & robust) ---
-    LOGO = Path(__file__).with_name("Logo.png")  # exact case matters
+# --- Sidebar logo (render every run; cheap & safe) ---
+try:
+    LOGO = Path(__file__).with_name("Logo.png")  # exact case matters on Linux
     if LOGO.exists():
         st.sidebar.image(str(LOGO), use_container_width=True)
         st.sidebar.markdown("---")
     else:
-        # Optional: one-line debug you can remove later
-        st.sidebar.caption(f"Logo not found at {LOGO}")
-
-    # ✅ Make sure this is always set inside the `if not _page_configured` block
-    st.session_state["_page_configured"] = True
-
+        # temporary debug—remove once confirmed
+        st.sidebar.caption(f"Logo not found at: {LOGO}")
+except Exception as e:
+    # temporary debug—remove once confirmed
+    st.sidebar.caption(f"Logo render error: {e}")
 
 # --- USERS ---
 USERS = {
