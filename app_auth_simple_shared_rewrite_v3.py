@@ -5,12 +5,15 @@
 
 import streamlit as st
 
-# Must be the first Streamlit call
-st.set_page_config(
-    page_title="Vendor Finder — Shared Dataset (FRP)",
-    layout="wide",
-    initial_sidebar_state="expanded",
-)
+# Call page_config once per session, before any other st.* call.
+if not st.session_state.get("_page_configured", False):
+    st.set_page_config(
+        page_title="Vendor Finder — Shared Dataset (FRP)",
+        layout="wide",
+        initial_sidebar_state="expanded",
+    )
+    st.session_state["_page_configured"] = True
+
 
 # --- USERS (top of file) ---
 USERS = {
