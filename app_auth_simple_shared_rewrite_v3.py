@@ -69,7 +69,7 @@ def _logout():
         st.session_state.pop(k, None)
     st.rerun()
 
-st.sidebar.button("Logout", on_click=_logout)
+st.sidebar.button("Logout", key="logout_btn", on_click=_logout)
 # ------------ END AUTH GATE ------------
 
 
@@ -81,12 +81,6 @@ import numpy as np
 import pandas as pd
 
 # --------------------------- App config ---------------------------
-
-# Simple built-in users (kept out of UI)
-USERS = {
-    "admin": {"password": "Admin123!", "role": "admin"},
-    "user1": {"password": "User123!", "role": "user"},
-}
 
 HERE = os.path.dirname(__file__)
 RAW_PATH_DEFAULT = os.path.join(HERE, "shared_dataset.parquet")
@@ -306,61 +300,6 @@ def append_only_newer_filtered(existing: pd.DataFrame, df_new: pd.DataFrame, sco
         return out
 
     return df_new
-
-# --------------------------- Auth UI ---------------------------
-st.sidebar.header("Login")
-if "auth" not in st.session_state:
-    st.session_state.auth = {"status": None, "user": None}
-
-u = st.sidebar.text_input("Username", key="login_user")
-p = st.sidebar.text_input("Password", type="password", key="login_pass")
-if st.sidebar.button("Login"):
-    if u in USERS and p == USERS[u]["password"]:
-        st.session_state.auth = {"status": True, "user": u}
-        st.sidebar.success("Logged in.")
-    else:
-        st.session_state.auth = {"status": False, "user": None}
-        st.sidebar.error("Invalid username or password.")
-
-if st.session_state.auth["status"] is not True:
-    st.info("Please log in to continue.")
-    st.stop()
-
-# ---------- Auth header & safe access ----------
-auth = st.session_state.get("auth", {"status": None, "user": None})
-username = auth.get("user")
-role = USERS.get(username, {}).get("role") if username else None
-
-def _do_logout():
-    # Clear all auth-related keys
-    for k in ("auth", "authentication_status", "name", "username", "role"):
-        st.session_state.pop(k, None)
-    st.stop()  # end this run cleanly; Streamlit will render the login view next
-
-# Sidebar logout button
-st.sidebar.button("Logout", on_click=_do_logout)
-
-# If not logged in, stop before rendering the rest of the app
-if not username:
-    st.stop()
-
-# --------------------------- Sidebar dataset paths ---------------------------
-st.sidebar.markdown("---")
-st.sidebar.subheader("Shared Dataset")
-raw_path = st.sidebar.text_input("Raw dataset path", value=RAW_PATH_DEFAULT)
-agg_path = st.sidebar.text_input("Aggregated dataset path", value=AGG_PATH_DEFAULT)
-
-# --------------------------- Search component (shared) ---------------------------
-def render_search(agg_path: str, raw_path: str):
-    st.title("Vendor Finder — Search")
-    st.caption("Ranking = Frequency → Recency → Price")
-
-    agg = None
-    loaded_from = None
-
-if st.sidebar.button("Logout"):
-    st.session_state.auth = {"status": None, "user": None}
-    st.rerun()
 
 # --------------------------- Sidebar dataset paths ---------------------------
 st.sidebar.markdown("---")
