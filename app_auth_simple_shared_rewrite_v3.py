@@ -2,15 +2,23 @@
 # app_auth_simple_shared_rewrite_v3.py
 # Change: make vendor_id optional (no failures if missing). Dynamic aggregation keys.
 # Admin can Search/Publish/Audit. Duplicate-header-safe normalization, FRP ranking.
+
+import streamlit as st
+
+# Must be the first Streamlit call
+st.set_page_config(
+    page_title="Vendor Finder — Shared Dataset (FRP)",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
+
 # --- USERS (top of file) ---
 USERS = {
     "Admin": {"password": "Admin123!", "role": "admin"},
     "User1": {"password": "User123!", "role": "user"},
 }
 
-
 # ------------ AUTH: inline login panel + safe logout gate ------------
-import streamlit as st
 
 # Ensure session auth container exists
 auth = st.session_state.get("auth")
@@ -19,6 +27,7 @@ if not isinstance(auth, dict):
     st.session_state.auth = auth
 
 username = auth.get("user")
+
 
 def _find_user(u: str):
     """Return user record by exact key, then case-insensitive fallback."""
