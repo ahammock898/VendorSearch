@@ -361,7 +361,7 @@ def render_search(agg_path: str, raw_path: str):
 
 if st.sidebar.button("Logout"):
     st.session_state.auth = {"status": None, "user": None}
-     st.rerun()
+    st.rerun()
 
 # --------------------------- Sidebar dataset paths ---------------------------
 st.sidebar.markdown("---")
