@@ -15,20 +15,17 @@ if not st.session_state.get("_page_configured", False):
         initial_sidebar_state="expanded",
     )
 
-# --- Sidebar logo (runs every render) ---
-LOGO = Path(__file__).with_name("Logo.png")
+from pathlib import Path
+
+# --- Sidebar logo (simple & robust) ---
+LOGO = Path(__file__).with_name("Logo.png")  # exact case matters
 if LOGO.exists():
-    st.sidebar.markdown(
-        """
-        <style>
-        [data-testid="stSidebar"] img { display:block; margin: 0 auto; }
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
-    img = Image.open(LOGO)
-    st.sidebar.image(img, use_container_width=True)
+    st.sidebar.image(str(LOGO), use_container_width=True)
     st.sidebar.markdown("---")
+else:
+    # Optional: one-line debug you can remove later
+    st.sidebar.caption(f"Logo not found at {LOGO}")
+
     st.session_state["_page_configured"] = True
 
 
