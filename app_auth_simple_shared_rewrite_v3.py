@@ -14,7 +14,6 @@ if not st.session_state.get("_page_configured", False):
         layout="wide",
         initial_sidebar_state="expanded",
     )
-    st.session_state["_page_configured"] = True
 
 # --- Sidebar logo (runs every render) ---
 LOGO = Path(__file__).with_name("Logo.png")
@@ -30,6 +29,9 @@ if LOGO.exists():
     img = Image.open(LOGO)
     st.sidebar.image(img, use_container_width=True)
     st.sidebar.markdown("---")
+    st.session_state["_page_configured"] = True
+
+
 
 # --- USERS ---
 USERS = {
