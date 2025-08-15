@@ -63,17 +63,14 @@ if not username:
 # If we get here, we are logged in
 role = USERS.get(username, {}).get("role")
 
-def _logout():
-    # Clear auth and other auth-related keys safely
-    for k in ("auth", "authentication_status", "name", "username", "role"):
+# ---- Logout (inline — not a callback) ----
+if st.sidebar.button("Logout", key="logout_btn"):
+    for k in ("auth", "authentication_status", "name", "username", "role", "login_user", "login_pass"):
         st.session_state.pop(k, None)
-    st.rerun()
+    st.session_state.auth = {"status": None, "user": None}
+    st.stop()  # End run; next render will show login form
 
-st.sidebar.button("Logout", key="logout_btn", on_click=_logout)
 # ------------ END AUTH GATE ------------
-
-
-
 import io
 import os
 from datetime import datetime
