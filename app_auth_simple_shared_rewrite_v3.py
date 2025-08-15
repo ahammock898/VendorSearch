@@ -14,10 +14,22 @@ if not st.session_state.get("_page_configured", False):
     )
     st.session_state["_page_configured"] = True
 
-# Place this at the very top of your layout after page_config
-logo_path = "Logo.png"
-st.image(logo_path, width=200)  # adjust width as needed
+from pathlib import Path
 
+# --- Sidebar logo (must be before the login form) ---
+LOGO = Path(__file__).with_name("Logo.png")
+if LOGO.exists():
+    # Optional: center the image in the sidebar
+    st.sidebar.markdown(
+        """
+        <style>
+        [data-testid="stSidebar"] img { display:block; margin: 0 auto; }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.sidebar.image(str(LOGO), use_container_width=True)
+    st.sidebar.markdown("---")  # a divider under the logo
 
 # --- USERS (top of file) ---
 USERS = {
