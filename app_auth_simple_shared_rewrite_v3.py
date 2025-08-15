@@ -3,10 +3,16 @@
 # Change: make vendor_id optional (no failures if missing). Dynamic aggregation keys.
 # Admin can Search/Publish/Audit. Duplicate-header-safe normalization, FRP ranking.
 
-# ------------ AUTH: username/role + safe logout + hard gate ------------
+# ------------ AUTH: inline login panel + safe logout gate ------------
 import streamlit as st
 
-# Ensure an auth dict exists in session_state
+# Expect a USERS dict elsewhere in the file, e.g.:
+# USERS = {
+#   "Admin": {"password": "Admin123!", "role": "admin"},
+#   "User1": {"password": "User123!", "role": "user"},
+# }
+
+# Ensure session auth container exists
 auth = st.session_state.get("auth")
 if not isinstance(auth, dict):
     auth = {"status": None, "user": None}
@@ -14,28 +20,36 @@ if not isinstance(auth, dict):
 
 username = auth.get("user")
 
-# Resolve role *safely* without assuming USERS already exists
-role = None
-_users = globals().get("USERS", {})  # if USERS isn't defined yet, use {}
-if username:
-    user_info = _users.get(username, {})
-    role = user_info.get("role")
+# If NOT logged in: render login panel and stop
+if not username:
+    with st.sidebar.form("login_form", clear_on_submit=False):
+        st.subheader("Log in")
+        u = st.text_input("Username")
+        p = st.text_input("Password", type="password")
+        submitted = st.form_submit_button("Log in")
+
+    if submitted:
+        user_rec = globals().get("USERS", {}).get(u)
+        if user_rec and p == user_rec.get("password"):
+            st.session_state.auth = {"status": True, "user": u}
+            st.rerun()
+        else:
+            st.sidebar.error("Invalid username or password")
+    # Don’t run the rest of the app until a user is logged in
+    st.stop()
+
+# If we get here, we are logged in
+_users = globals().get("USERS", {})
+role = _users.get(username, {}).get("role")
 
 def _logout():
-    # clear only auth-related keys
     for k in ("auth", "authentication_status", "name", "username", "role"):
         st.session_state.pop(k, None)
-    st.rerun()  # clean rerun to refresh back to login
+    st.rerun()
 
-# Show Logout only when logged in
-if username:
-    st.sidebar.button("Logout", on_click=_logout)
-
-# HARD GATE: stop running the rest of the app if not logged in
-if not username:
-    st.sidebar.info("Please log in to continue.")
-    st.stop()
+st.sidebar.button("Logout", on_click=_logout)
 # ------------ END AUTH GATE ------------
+
 
 
 import io
