@@ -16,7 +16,7 @@ if not st.session_state.get("_page_configured", False):
 
 # Place this at the very top of your layout after page_config
 logo_path = "logo.png"
-st.image(logo_path, width=200)  # adjust width as needed
+st.image(logo.png, width=200)  # adjust width as needed
 
 
 # --- USERS (top of file) ---
