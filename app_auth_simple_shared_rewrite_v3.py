@@ -2,15 +2,15 @@
 # app_auth_simple_shared_rewrite_v3.py
 # Change: make vendor_id optional (no failures if missing). Dynamic aggregation keys.
 # Admin can Search/Publish/Audit. Duplicate-header-safe normalization, FRP ranking.
+# --- USERS (top of file) ---
+USERS = {
+    "Admin": {"password": "Admin123!", "role": "admin"},
+    "User1": {"password": "User123!", "role": "user"},
+}
+
 
 # ------------ AUTH: inline login panel + safe logout gate ------------
 import streamlit as st
-
-# Expect a USERS dict elsewhere in the file, e.g.:
-# USERS = {
-#   "Admin": {"password": "Admin123!", "role": "admin"},
-#   "User1": {"password": "User123!", "role": "user"},
-# }
 
 # Ensure session auth container exists
 auth = st.session_state.get("auth")
@@ -20,29 +20,39 @@ if not isinstance(auth, dict):
 
 username = auth.get("user")
 
+def _find_user(u: str):
+    """Return user record by exact key, then case-insensitive fallback."""
+    if u in USERS:  # exact match first
+        return u, USERS[u]
+    # case-insensitive fallback
+    lower_map = {k.lower(): k for k in USERS.keys()}
+    k = lower_map.get(u.lower())
+    return (k, USERS[k]) if k else (None, None)
+
 # If NOT logged in: render login panel and stop
 if not username:
     with st.sidebar.form("login_form", clear_on_submit=False):
         st.subheader("Log in")
-        u = st.text_input("Username")
+        u_raw = st.text_input("Username")
         p = st.text_input("Password", type="password")
         submitted = st.form_submit_button("Log in")
 
     if submitted:
-        user_rec = globals().get("USERS", {}).get(u)
-        if user_rec and p == user_rec.get("password"):
-            st.session_state.auth = {"status": True, "user": u}
+        u = (u_raw or "").strip()      # trim spaces
+        p = (p or "").strip()          # trim spaces
+        key, user_rec = _find_user(u)
+        if user_rec and p == str(user_rec.get("password", "")):
+            st.session_state.auth = {"status": True, "user": key}
             st.rerun()
         else:
             st.sidebar.error("Invalid username or password")
-    # Don’t run the rest of the app until a user is logged in
     st.stop()
 
 # If we get here, we are logged in
-_users = globals().get("USERS", {})
-role = _users.get(username, {}).get("role")
+role = USERS.get(username, {}).get("role")
 
 def _logout():
+    # Clear auth and other auth-related keys safely
     for k in ("auth", "authentication_status", "name", "username", "role"):
         st.session_state.pop(k, None)
     st.rerun()
