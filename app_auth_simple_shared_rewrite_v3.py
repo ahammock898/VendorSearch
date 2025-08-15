@@ -68,7 +68,7 @@ if st.sidebar.button("Logout", key="logout_btn"):
     for k in ("auth", "authentication_status", "name", "username", "role", "login_user", "login_pass"):
         st.session_state.pop(k, None)
     st.session_state.auth = {"status": None, "user": None}
-    st.stop()  # End run; next render will show login form
+    st.experimental_rerun()  # Force immediate rerender with login panel
 
 # ------------ END AUTH GATE ------------
 import io
