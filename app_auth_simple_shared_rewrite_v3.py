@@ -257,8 +257,38 @@ if st.session_state.auth["status"] is not True:
     st.info("Please log in to continue.")
     st.stop()
 
-username = st.session_state.auth["user"]
-role = USERS[username]["role"]
+# ---------- Auth header & safe access ----------
+auth = st.session_state.get("auth", {"status": None, "user": None})
+username = auth.get("user")
+role = USERS.get(username, {}).get("role") if username else None
+
+def _do_logout():
+    # Clear all auth-related keys
+    for k in ("auth", "authentication_status", "name", "username", "role"):
+        st.session_state.pop(k, None)
+    st.stop()  # end this run cleanly; Streamlit will render the login view next
+
+# Sidebar logout button
+st.sidebar.button("Logout", on_click=_do_logout)
+
+# If not logged in, stop before rendering the rest of the app
+if not username:
+    st.stop()
+
+# --------------------------- Sidebar dataset paths ---------------------------
+st.sidebar.markdown("---")
+st.sidebar.subheader("Shared Dataset")
+raw_path = st.sidebar.text_input("Raw dataset path", value=RAW_PATH_DEFAULT)
+agg_path = st.sidebar.text_input("Aggregated dataset path", value=AGG_PATH_DEFAULT)
+
+# --------------------------- Search component (shared) ---------------------------
+def render_search(agg_path: str, raw_path: str):
+    st.title("Vendor Finder — Search")
+    st.caption("Ranking = Frequency → Recency → Price")
+
+    agg = None
+    loaded_from = None
+
 if st.sidebar.button("Logout"):
     st.session_state.auth = {"status": None, "user": None}
     st.experimental_rerun()
