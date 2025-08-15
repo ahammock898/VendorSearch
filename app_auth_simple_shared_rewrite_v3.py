@@ -81,7 +81,6 @@ import numpy as np
 import pandas as pd
 
 # --------------------------- App config ---------------------------
-st.set_page_config(page_title="Vendor Finder — Shared Dataset (FRP)", layout="wide")
 
 # Simple built-in users (kept out of UI)
 USERS = {
