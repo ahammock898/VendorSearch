@@ -306,6 +306,7 @@ def render_search(agg_path: str, raw_path: str):
     st.title("Vendor Finder — Search")
     st.caption("Ranking = Frequency → Recency → Price")
 
+    # ---------------- Load data (AGG -> RAW) ----------------
     agg = None
     loaded_from = None
 
@@ -332,12 +333,14 @@ def render_search(agg_path: str, raw_path: str):
 
     st.caption(f"Loaded from: **{loaded_from}**")
 
+    # ---------------- Search inputs ----------------
     st.subheader("Search")
-    c1, c2, c3 = st.columns([1,1,2])
+    c1, c2, c3 = st.columns([1, 1, 2])
     q_product = c1.text_input("Product ID (exact match or contains)")
     q_vendor = c2.text_input("Vendor Name (contains)")
     q_keywords = c3.text_input("Keywords (comma separated; matches any)")
 
+    # ---------------- Filtering helper ----------------
     def filter_results(agg_df: pd.DataFrame, pid: str, vname: str, keywords: str) -> pd.DataFrame:
         view = agg_df.copy()
         if pid:
@@ -348,40 +351,39 @@ def render_search(agg_path: str, raw_path: str):
             view = view[view["vendor_name"].astype(str).str.contains(vname, case=False, na=False)]
         if keywords:
             toks = [t.strip().lower() for t in keywords.split(",") if t.strip()]
-            if toks:
-                mask = view["keywords"].fillna("").astype(str).str.lower().apply(lambda s: any(tok in s for tok in toks))
+            if toks and "keywords" in view.columns:
+                mask = view["keywords"].fillna("").astype(str).str.lower().apply(
+                    lambda s: any(tok in s for tok in toks)
+                )
                 view = view[mask]
+
+        # Sort + rerank
         view = view.sort_values(
             ["product_id", "combined_score", "orders", "last_order_date", "avg_price"],
-            ascending=[True, False, False, False, True]
+            ascending=[True, False, False, False, True],
         )
         view["rank"] = view.groupby("product_id").cumcount() + 1
         return view
-        results = filter_results(agg, q_product, q_vendor, q_keywords)
 
-if results.empty and (q_product or q_vendor or q_keywords):
-    st.info("No matches found. Try broadening your search or removing a filter.")
-elif results.empty:
-    st.caption("Enter a Product ID, Vendor name, and/or Keywords to get ranked vendors.")
-else:
-    st.subheader("Ranked Vendors (Freq → Recent → Cheapest)")
+    # ---------------- Run filter ----------------
+    results = filter_results(agg, q_product, q_vendor, q_keywords)
 
-    # 1) Columns to SHOW (orders & avg_price are intentionally omitted from display)
-    display_cols = [
-        "product_id",        # Product ID
-        "vendor_name",       # Vendor
-        "rank",              # Rank
-        "last_order_date",   # Last Order Date
-        "min_price",         # Min Price
-        "vendor_id",         # Vendor ID
-        "sample_description",# Description
-        "keywords",          # Keywords
-    ]
-    present = [c for c in display_cols if c in results.columns]
-    results_display = results[present].copy()
+    # ---------------- Display ----------------
+    if results.empty and (q_product or q_vendor or q_keywords):
+        st.info("No matches found. Try broadening your search or removing a filter.")
+        return
+    elif results.empty:
+        st.caption("Enter a Product ID, Vendor name, and/or Keywords to get ranked vendors.")
+        return
 
-    # 2) Friendly header names
-    pretty_names = {
+    # Format/rename/hide columns as requested
+    # 1) Remove commas from vendor_id (display-only)
+    if "vendor_id" in results.columns:
+        results["vendor_id"] = results["vendor_id"].astype(str).str.replace(",", "", regex=False)
+
+    # 2) Build display frame and rename columns
+    #    Hide: orders, avg_price (but keep them in 'results' for ranking logic)
+    pretty_map = {
         "product_id": "Product ID",
         "vendor_name": "Vendor",
         "rank": "Rank",
@@ -392,47 +394,45 @@ else:
         "keywords": "Keywords",
     }
 
-    # 3) Light formatting (only affects display)
-    #    - Last Order Date as YYYY-MM-DD
-    if "last_order_date" in results_display.columns:
-        results_display["last_order_date"] = pd.to_datetime(
-            results_display["last_order_date"], errors="coerce"
-        ).dt.strftime("%Y-%m-%d")
+    # Optional: add a visual marker for top rank
+    results["Top"] = results["rank"].eq(1).map({True: "⭐ Top", False: ""})
 
-    #    - Min Price as currency
-    if "min_price" in results_display.columns:
-        results_display["min_price"] = results_display["min_price"].map(
-            lambda v: "" if pd.isna(v) else f"${v:,.2f}"
+    show_cols = [
+        "Top",
+        "product_id",
+        "vendor_name",
+        "rank",
+        "last_order_date",
+        "min_price",
+        "vendor_id",
+        "sample_description",
+        "keywords",
+    ]
+    # only keep columns that actually exist
+    show_cols = [c for c in show_cols if c in results.columns]
+
+    # Prepare a view for display
+    view_df = results[show_cols].rename(columns=pretty_map).copy()
+
+    # Column formatting for nicer display
+    if "Last Order Date" in view_df.columns:
+        # Convert to date-only string for display
+        view_df["Last Order Date"] = pd.to_datetime(view_df["Last Order Date"], errors="coerce").dt.date.astype(str)
+
+    if "Min Price" in view_df.columns:
+        # Format as currency-like string (no currency sign to keep it simple)
+        view_df["Min Price"] = pd.to_numeric(view_df["Min Price"], errors="coerce").map(
+            lambda x: f"{x:,.2f}" if pd.notna(x) else ""
         )
 
-    #    - Vendor ID with NO commas
-    if "vendor_id" in results_display.columns:
-        results_display["vendor_id"] = results_display["vendor_id"].map(
-            lambda v: "" if pd.isna(v) else str(v).replace(",", "")
-        )
-
-    # 4) Highlight top-ranked rows (rank == 1)
-    def _highlight_top_rows(row):
-        col = "rank" if "rank" in row.index else "Rank"
-        try:
-            return ["background-color: #e6ffe6"] * len(row) if row[col] == 1 else ["" ] * len(row)
-        except Exception:
-            return ["" ] * len(row)
-
-    # Apply pretty headers then style
-    styled = (
-        results_display
-        .rename(columns=pretty_names)
-        .style.apply(_highlight_top_rows, axis=1)
-    )
-
-    st.dataframe(styled, use_container_width=True)
-
+    # Show results
+    st.subheader("Ranked Vendors (Freq → Recent → Cheapest)")
+    st.caption("Rows with ⭐ are the top-ranked vendor for that product.")
+    st.dataframe(view_df, use_container_width=True)
 
 # --------------------------- Admin Views ---------------------------
 if role == "admin":
     view = st.sidebar.radio("Admin View", ["Search", "Publish", "Audit"], index=0, horizontal=True)
-
     if view == "Search":
         render_search(agg_path, raw_path)
 
