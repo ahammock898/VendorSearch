@@ -19,7 +19,7 @@ if not st.session_state.get("_page_configured", False):
 try:
     LOGO = Path(__file__).with_name("Logo.png")  # exact case matters on Linux
     if LOGO.exists():
-        st.sidebar.image(str(LOGO), use_container_width=True)
+        st.sidebar.image(str(LOGO), use_column_width=True)
         st.sidebar.markdown("---")
     else:
         # temporary debug—remove once confirmed
